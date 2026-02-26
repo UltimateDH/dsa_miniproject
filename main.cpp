@@ -1,4 +1,6 @@
+#include "raylib.h"
 #include <iostream>
+#include <string>
 using namespace std;
 
 // ===== FRAME STRUCTURE (Linked List Node) =====
@@ -41,47 +43,98 @@ void push(Frame deletedFrame);
 Frame pop();
 bool isStackEmpty();
 
+int getLastFrameNumber() {
+    if (head == NULL) return -1;
+
+    Frame* temp = head;
+    while (temp->next != NULL)
+        temp = temp->next;
+
+    return temp->frameNumber;
+}
+
+
+
 int main() {
 
-    int choice;
+    InitWindow(900, 600, "Video Frame Management System");
+    SetTargetFPS(60);
 
-    while (true) {
-       cout << "\n1. Add Frame\n";
-       cout << "2. Display Frames\n";
-       cout << "3. Delete Frame\n";
-       cout << "4. Undo Delete\n";
-       cout << "5. Process Frames\n";
-       cout << "6. Exit\n";
-       cout << "Enter choice: ";
-       cin >> choice;
+    Rectangle addBtn     = {100, 100, 140, 40};
+    Rectangle deleteBtn  = {260, 100, 140, 40};
+    Rectangle undoBtn    = {420, 100, 140, 40};
+    Rectangle processBtn = {580, 100, 140, 40};
 
-        switch (choice) {
-            case 1:
-                addFrame();
-                break;
-            case 2:
-                displayFrames();
-                break;
-            case 3: {
-                    int num;
-                    cout << "Enter frame number to delete: ";
-                    cin >> num;
-                    deleteFrame(num);
-                break;
-            }
-            case 4:
-                undoDelete();
-            break;
-            case 5:
-                processFrames();
-            break;
-            case 6:
-                return 0;
-            default:
-                cout << "Invalid choice!\n";
-        }
+    while (!WindowShouldClose()) {
+
+    Vector2 mouse = GetMousePosition();
+
+    // --- Button Click Detection ---
+    if (CheckCollisionPointRec(mouse, addBtn) &&
+        IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        addFrame();
     }
 
+    if (CheckCollisionPointRec(mouse, deleteBtn) &&
+        IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        int last = getLastFrameNumber();
+        if (last != -1)
+            deleteFrame(last);
+        else
+            cout << "No frames to delete\n";
+            }
+
+    if (CheckCollisionPointRec(mouse, undoBtn) &&
+        IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        undoDelete();
+    }
+
+    if (CheckCollisionPointRec(mouse, processBtn) &&
+        IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        processFrames();
+    }
+
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    // --- Title ---
+    DrawText("Video Frame Management System", 250, 30, 30, BLACK);
+
+    // --- Draw Buttons ---
+    DrawRectangleRec(addBtn, LIGHTGRAY);
+    DrawText("Add Frame", 115, 110, 18, BLACK);
+
+    DrawRectangleRec(deleteBtn, LIGHTGRAY);
+    DrawText("Delete", 290, 110, 18, BLACK);
+
+    DrawRectangleRec(undoBtn, LIGHTGRAY);
+    DrawText("Undo", 460, 110, 18, BLACK);
+
+    DrawRectangleRec(processBtn, LIGHTGRAY);
+    DrawText("Process", 605, 110, 18, BLACK);
+
+    // ==============================
+    // ✅ ADD FRAME DISPLAY HERE
+    // ==============================
+
+    Frame* temp = head;
+    int y = 200;
+
+    while (temp != NULL) {
+        DrawText(
+            TextFormat("Frame %d | Timestamp %d",
+            temp->frameNumber,
+            temp->timestamp),
+            120, y, 20, DARKBLUE);
+
+        y += 30;
+        temp = temp->next;
+    }
+
+    EndDrawing();
+}
+
+    CloseWindow();
     return 0;
 }
 
@@ -150,37 +203,50 @@ Frame pop() {
 }
 
 
-void deleteFrame(int frameNumber) {
+void deleteFrame(int id) {
     if (head == NULL) {
-        cout << "No frames to delete.\n";
+        cout << "No frames found to delete\n";
         return;
     }
 
     Frame* temp = head;
     Frame* prev = NULL;
 
-    while (temp != NULL && temp->frameNumber != frameNumber) {
+    // If head is the frame to delete
+    if (temp->frameNumber == id) {
+
+        head = temp->next;
+
+        // Push deleted frame data into stack
+        push(*temp);
+
+        delete temp;
+
+        cout << "Frame " << id << " deleted\n";
+        return;
+    }
+
+    // Search for frame
+    while (temp != NULL && temp->frameNumber != id) {
         prev = temp;
         temp = temp->next;
     }
 
+    // If not found
     if (temp == NULL) {
-        cout << "Frame not found.\n";
+        cout << "Frame not found\n";
         return;
     }
 
-    // Push deleted frame into stack
-    push(*temp);
+    // Remove from list
+    prev->next = temp->next;
 
-    if (prev == NULL) {
-        head = temp->next;
-    } else {
-        prev->next = temp->next;
-    }
+    // Push deleted frame data into stack
+    push(*temp);
 
     delete temp;
 
-    cout << "Frame " << frameNumber << " deleted.\n";
+    cout << "Frame " << id << " deleted\n";
 }
 
 
